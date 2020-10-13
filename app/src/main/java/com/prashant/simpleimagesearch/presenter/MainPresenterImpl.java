@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.os.Handler;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
+
 import com.prashant.simpleimagesearch.activities.CommentsActivity;
 
 public class MainPresenterImpl implements MainPresenter {
@@ -33,8 +35,9 @@ public class MainPresenterImpl implements MainPresenter {
     boolean doubleBackToExitPressedOnce = false;
 
     @Override
-    public void onBackPressed() {
+    public void onBackPressed(OnBackPressedCallback callback) {
         if (doubleBackToExitPressedOnce) {
+            callback.handleOnBackPressed();
             return;
         }
         this.doubleBackToExitPressedOnce = true;

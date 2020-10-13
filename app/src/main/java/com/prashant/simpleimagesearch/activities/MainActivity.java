@@ -1,11 +1,13 @@
 package com.prashant.simpleimagesearch.activities;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
@@ -194,8 +196,12 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        presenter.onBackPressed();
+        presenter.onBackPressed(new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                MainActivity.super.onBackPressed();
+            }
+        });
     }
 
     public void hideKeyboard() {
