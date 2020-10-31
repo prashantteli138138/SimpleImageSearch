@@ -1,4 +1,4 @@
-package com.prashant.simpleimagesearch.activities
+package com.prashant.simpleimagesearch.view
 
 
 import android.view.View

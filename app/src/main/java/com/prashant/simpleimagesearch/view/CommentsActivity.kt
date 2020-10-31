@@ -1,4 +1,4 @@
-package com.prashant.simpleimagesearch.activities
+package com.prashant.simpleimagesearch.view
 
 import android.os.Bundle
 import android.view.View
@@ -11,31 +11,43 @@ import com.bumptech.glide.Glide
 import com.prashant.simpleimagesearch.R
 import com.prashant.simpleimagesearch.database.DB
 import com.prashant.simpleimagesearch.model.ImageDetails
+import com.prashant.simpleimagesearch.presenter_comments.CommentsPresenter
+import com.prashant.simpleimagesearch.presenter_comments.CommentsPresenterImpl
 
 class CommentsActivity : AppCompatActivity() {
     lateinit var imageView: ImageView;
     lateinit var comment: EditText;
-    lateinit var db: DB;
     lateinit var imageDetails: ImageDetails
+    lateinit var commentsPresenter: CommentsPresenter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main2)
+        init()
+    }
+
+    fun onSubmit(view: View) {
+        imageDetails.comment = comment.text.toString()
+        commentsPresenter.AddComment(imageDetails)
+        Toast.makeText(applicationContext, "Comment Added Successfully", Toast.LENGTH_LONG).show()
+    }
+
+    private fun init() {
         imageView = findViewById<ImageView>(R.id.imageView);
         comment = findViewById<EditText>(R.id.editText);
-        db = DB(this)
+        commentsPresenter = CommentsPresenterImpl(this)
         val bundle = intent.extras
         val id = bundle?.get("id")
         val title = bundle?.get("title")
         val link = bundle?.get("link")
+        val previousComment = commentsPresenter.getCommentById("ItemId", id as String)
 
-        val previousComment = db.getCommentById("ItemId", id as String?)
-        if (previousComment.comment != null) {
-            comment.setText(previousComment.comment)
+        if (previousComment != null) {
+            if (previousComment.comment != null) {
+                comment.setText(previousComment.comment)
+            }
         }
-
         imageDetails = ImageDetails()
-
         imageDetails.id = id as String?
         imageDetails.title = title as String?
         imageDetails.link = link as String?
@@ -54,14 +66,6 @@ class CommentsActivity : AppCompatActivity() {
 
         toolbar.setNavigationOnClickListener(View.OnClickListener { onBackPressed() })
 
-
     }
 
-    fun onSubmit(view: View) {
-        imageDetails.comment = comment.text.toString()
-        db.AddComment(imageDetails)
-        Toast.makeText(applicationContext, "Comment Added Successfully", Toast.LENGTH_LONG).show()
-
-
-    }
 }

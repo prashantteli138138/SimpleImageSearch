@@ -1,7 +1,7 @@
 package com.prashant.simpleimagesearch.model;
 
 public class ImageDetails {
-    private String id, itemId, title, link ,comment;
+    private String id, itemId, title, link, comment;
 
     public String getId() {
         return id;

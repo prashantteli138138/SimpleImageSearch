@@ -1,4 +1,4 @@
-package com.prashant.simpleimagesearch.activities;
+package com.prashant.simpleimagesearch.view;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,44 +7,36 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.app.Activity;
-import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.google.gson.Gson;
 import com.prashant.simpleimagesearch.adapters.ImageListAdapter;
 import com.prashant.simpleimagesearch.Interfaces.OnItemClickListener;
-import com.prashant.simpleimagesearch.Interfaces.VolleyCallback;
 import com.prashant.simpleimagesearch.listeners.EndlessRecyclerOnScrollListener;
 import com.prashant.simpleimagesearch.R;
 import com.prashant.simpleimagesearch.model.ImageDetails;
-import com.prashant.simpleimagesearch.presenter.MainPresenter;
-import com.prashant.simpleimagesearch.presenter.MainPresenterImpl;
-import com.prashant.simpleimagesearch.services.FetchImages;
+import com.prashant.simpleimagesearch.presenter_main.MainPresenter;
+import com.prashant.simpleimagesearch.presenter_main.MainPresenterImpl;
+import com.prashant.simpleimagesearch.presenter_main.MainView;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class MainActivity extends AppCompatActivity implements OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements OnItemClickListener, MainView {
     private RecyclerView recyclerView;
     EditText searchView;
     ArrayList<ImageDetails> imageDetails;
-    int pageNo = 1;
+
     ImageListAdapter myAdapter;
     private Timer timer = new Timer();
     private final long DELAY = 900; // in ms
@@ -54,9 +46,10 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        presenter = new MainPresenterImpl(this, this);
         Init();
         Search();
-        MakeAPICall();
+        presenter.MakeAPICall(searchView.getText().toString());
     }
 
     @Override
@@ -66,53 +59,12 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     public void SearchImages(View view) {
         imageDetails.clear();
-        MakeAPICall();
-        pageNo = 1;
-    }
-
-    public void MakeAPICall() {
-        String queryParams = searchView.getText().toString();
-
-        FetchImages fetchImages = new FetchImages(this, queryParams, pageNo);
-        fetchImages.sendRequest(new VolleyCallback() {
-            @Override
-            public void onSuccessResponse(String result) {
-
-                JSONObject jsonObject = null;
-
-                JSONArray arrr = null;
-                try {
-                    jsonObject = new JSONObject(result);
-                    arrr = jsonObject.getJSONArray("data");
-                    for (int i = 0; i < arrr.length(); i++) {
-                        JSONObject jsonObj = new JSONObject(arrr.getString(i));
-                        JSONArray ar;
-                        try {
-                            String title = jsonObj.getString("title");
-                            ar = jsonObj.getJSONArray("images");
-                            Log.e("OuterLoop", jsonObj.toString());
-                            for (int j = 0; j < ar.length(); j++) {
-                                Gson gson = new Gson();
-                                ImageDetails res = gson.fromJson(ar.getString(j), ImageDetails.class);
-                                res.setTitle(title);
-                                imageDetails.add(res);
-                                Log.e("InnerLoop", res.toString());
-                            }
-                        } catch (JSONException e) {
-                            Log.e("JSONException", e.toString());
-                        }
-                    }
-                    myAdapter.notifyDataSetChanged();
-                    pageNo++;
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        presenter.MakeAPICall(searchView.getText().toString());
+        presenter.SetPageNo(1);
     }
 
     public void Init() {
-        presenter = new MainPresenterImpl(this);
+        presenter = new MainPresenterImpl(this, this);
         searchView = (EditText) findViewById(R.id.searchView);
         imageDetails = new ArrayList<>();
         recyclerView = (RecyclerView) findViewById(R.id.recycleView);
@@ -130,17 +82,17 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
             @Override
             public void onLoadMore(int current_page) {
                 System.out.println("load more");
-                MakeAPICall();
+                presenter.MakeAPICall(searchView.getText().toString());
             }
         });
         searchView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE) {
-                    hideKeyboard();
+                    presenter.hideKeyboard(searchView.getWindowToken());
                     imageDetails.clear();
-                    MakeAPICall();
-                    pageNo = 1;
+                    presenter.MakeAPICall(searchView.getText().toString());
+                    presenter.SetPageNo(1);
                     return true;
                 }
                 return false;
@@ -174,21 +126,24 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
                             imageDetails.clear();
                             runOnUiThread(new Runnable() {
                                 public void run() {
-                                    hideKeyboard();
+                                    presenter.hideKeyboard(searchView.getWindowToken());
                                     imageDetails.clear();
-                                    MakeAPICall();
-                                    pageNo = 1;
+                                    presenter.MakeAPICall(searchView.getText().toString());
+
+                                    presenter.SetPageNo(1);
                                 }
                             });
 
-                            pageNo = 1;
+
+                            presenter.SetPageNo(1);
                         }
 
                     }, DELAY);
                 } else if (s.length() == 0) {
                     imageDetails.clear();
-                    MakeAPICall();
-                    pageNo = 1;
+                    presenter.MakeAPICall(searchView.getText().toString());
+
+                    presenter.SetPageNo(1);
                 }
             }
         });
@@ -204,9 +159,13 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         });
     }
 
-    public void hideKeyboard() {
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        assert imm != null;
-        imm.hideSoftInputFromWindow(searchView.getWindowToken(), InputMethodManager.RESULT_UNCHANGED_SHOWN);
+    @Override
+    public void notifyDataSetChanged() {
+        myAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void addData(@NotNull ImageDetails res) {
+        imageDetails.add(res);
     }
 }
